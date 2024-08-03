@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entrenamiento de Atención</title>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 90%;
+            width: 400px;
+        }
+        .grid {
+            display: grid;
+            gap: 10px;
+            margin: 20px auto;
+            justify-content: center;
+        }
+        .cell {
+            width: 60px;
+            height: 60px;
+            background-color: #ddd;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        .target {
+            background-color: red;
+        }
+        select, button {
+            margin: 10px 0;
+            padding: 5px 10px;
+        }
+        #results {
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        @media (max-width: 500px) {
+            .cell {
+                width: 50px;
+                height: 50px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Entrenamiento de Atención</h1>
+        <select id="level">
+            <option value="facil">Fácil</option>
+            <option value="medio">Medio</option>
+            <option value="dificil">Difícil</option>
+        </select>
+        <button id="startBtn">Iniciar Juego</button>
+        <div id="game" style="display: none;">
+            <div id="grid" class="grid"></div>
+            <p>Tiempo restante: <span id="time">120</span>s</p>
+            <p>Puntuación: <span id="score">0</span></p>
+            <p>Errores: <span id="errors">0</span></p>
+        </div>
+        <div id="results"></div>
+    </div>
+
+    <script>
+        const levels = {
+            facil: { interval: 2000, gridSize: 3 },
+            medio: { interval: 1500, gridSize: 4 },
+            dificil: { interval: 1000, gridSize: 5 }
+        };
+
+        let level = 'facil';
+        let isPlaying = false;
+        let timeLeft = 120;
+        let score = 0;
+        let errors = 0;
+        let reactionTimes = [];
+        let lastAppearance = null;
+        let gameInterval;
+        let targetInterval;
+
+        const levelSelect = document.getElementById('level');
+        const startBtn = document.getElementById('startBtn');
+        const gameDiv = document.getElementById('game');
+        const gridDiv = document.getElementById('grid');
+        const timeSpan = document.getElementById('time');
+        const scoreSpan = document.getElementById('score');
+        const errorsSpan = document.getElementById('errors');
+        const resultsDiv = document.getElementById('results');
+
+        startBtn.addEventListener('click', startGame);
+        levelSelect.addEventListener('change', (e) => level = e.target.value);
+
+        function startGame() {
+            isPlaying = true;
+            timeLeft = 120;
+            score = 0;
+            errors = 0;
+            reactionTimes = [];
+            gameDiv.style.display = 'block';
+            startBtn.style.display = 'none';
+            levelSelect.style.display = 'none';
+            resultsDiv.innerHTML = '';
+            updateGrid();
+            gameInterval = setInterval(updateTime, 1000);
+            targetInterval = setInterval(createTarget, levels[level].interval);
+        }
+
+        function updateGrid() {
+            gridDiv.innerHTML = '';
+            gridDiv.style.gridTemplateColumns = `repeat(${levels[level].gridSize}, 1fr)`;
+            for (let i = 0; i < levels[level].gridSize ** 2; i++) {
+                const cell = document.createElement('button');
+                cell.className = 'cell';
+                cell.addEventListener('click', () => handleClick(cell));
+                gridDiv.appendChild(cell);
+            }
+        }
+
+        function createTarget() {
+            const cells = document.querySelectorAll('.cell');
+            const randomIndex = Math.floor(Math.random() * cells.length);
+            cells[randomIndex].classList.add('target');
+            lastAppearance = Date.now();
+        }
+
+        function handleClick(cell) {
+            if (cell.classList.contains('target')) {
+                const reactionTime = Date.now() - lastAppearance;
+                reactionTimes.push(reactionTime);
+                score++;
+                scoreSpan.textContent = score;
+                cell.classList.remove('target');
+            } else {
+                errors++;
+                errorsSpan.textContent = errors;
+            }
+        }
+
+        function updateTime() {
+            timeLeft--;
+            timeSpan.textContent = timeLeft;
+            if (timeLeft <= 0) {
+                endGame();
+            }
+        }
+
+        function endGame() {
+            isPlaying = false;
+            clearInterval(gameInterval);
+            clearInterval(targetInterval);
+            gameDiv.style.display = 'none';
+            startBtn.style.display = 'inline-block';
+            levelSelect.style.display = 'inline-block';
+            const avgReactionTime = reactionTimes.length > 0 ? 
+                (reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length).toFixed(2) : 0;
+            resultsDiv.innerHTML = `
+                <h2>Resultados</h2>
+                <p>Puntuación final: ${score}</p>
+                <p>Errores totales: ${errors}</p>
+                <p>Tiempo de reacción promedio: ${avgReactionTime}ms</p>
+            `;
+        }
+    </script>
+</body>
+</html>
